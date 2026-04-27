@@ -15,14 +15,14 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog
-from typing import Optional
+from typing import Literal, Optional, cast
 
 import customtkinter as ctk
 
 from app.config import load_settings, save_settings
 from app.copier import copy_item
 from app.logger import logger
-from app.models import AppSettings, DetectedItem, Destination, Rule
+from app.models import AppSettings, DetectedItem, Destination, MatchType, Rule
 from app.router import get_destination, route_item
 from app.watcher import Watcher
 
@@ -171,10 +171,15 @@ class RuleDialog(ctk.CTkToplevel):
             messagebox.showwarning("Validation", "Priority must be an integer.", parent=self)
             return
 
+        match_type_val = self._match_var.get()
+        if match_type_val not in ("contains", "startswith", "endswith", "regex"):
+            messagebox.showwarning("Validation", f"Invalid match type: {match_type_val!r}", parent=self)
+            return
+
         self.result = Rule.new(
             name=name,
             pattern=pattern,
-            match_type=self._match_var.get(),  # type: ignore[arg-type]
+            match_type=cast("MatchType", match_type_val),
             case_sensitive=self._case_var.get(),
             priority=priority,
             destination_id=dest.id,
@@ -201,8 +206,11 @@ class DentalRouterApp(ctk.CTk):
         self._settings: AppSettings = load_settings()
         self._watcher: Optional[Watcher] = None
         self._items: list[DetectedItem] = []
-        self._item_rows: dict[str, list[tk.Label]] = {}  # item.id → row widgets
+        self._item_rows: dict[str, list[ctk.CTkLabel]] = {}  # item.id → [stat, rule, dest] labels
         self._queue: queue.Queue[DetectedItem] = queue.Queue()
+        # Maps for row-selection in the Destinations / Rules tabs
+        self._dest_row_map: dict[int, Destination] = {}   # widget id → Destination
+        self._rule_row_map: dict[int, Rule] = {}          # widget id → Rule
 
         self._build_ui()
         self._load_settings_to_ui()
@@ -388,11 +396,20 @@ class DentalRouterApp(ctk.CTk):
             messagebox.showwarning("Validation", "Debounce must be a number.")
             return
 
+        no_match_val = self._no_match_var.get()
+        conflict_val = self._conflict_var.get()
+        if no_match_val not in ("manual", "quarantine"):
+            messagebox.showwarning("Validation", f"Invalid on_no_match value: {no_match_val!r}")
+            return
+        if conflict_val not in ("manual", "quarantine"):
+            messagebox.showwarning("Validation", f"Invalid on_conflict value: {conflict_val!r}")
+            return
+
         self._settings.source_dir = self._src_var.get().strip()
         self._settings.quarantine_dir = self._quar_var.get().strip()
         self._settings.auto_mode = self._auto_var.get()
-        self._settings.on_no_match = self._no_match_var.get()  # type: ignore[assignment]
-        self._settings.on_conflict = self._conflict_var.get()   # type: ignore[assignment]
+        self._settings.on_no_match = cast(Literal["manual", "quarantine"], no_match_val)
+        self._settings.on_conflict = cast(Literal["manual", "quarantine"], conflict_val)
         self._settings.scan_debounce_seconds = debounce
 
         try:
@@ -410,18 +427,18 @@ class DentalRouterApp(ctk.CTk):
     def _refresh_destinations_list(self) -> None:
         for widget in self._dest_frame.winfo_children():
             widget.destroy()
+        self._dest_row_map.clear()
 
         for i, dest in enumerate(self._settings.destinations):
             row = ctk.CTkFrame(self._dest_frame, fg_color=("#2B2B3B" if i % 2 else "#222233"))
             row.pack(fill="x", pady=1)
             row.bind("<Button-1>", lambda e, d=dest: self._select_destination(d))
+            self._dest_row_map[id(row)] = dest
 
             ctk.CTkLabel(row, text=dest.name, width=180, anchor="w").pack(side="left", padx=4)
             ctk.CTkLabel(row, text=dest.path, width=400, anchor="w").pack(side="left", padx=4)
             ctk.CTkLabel(row, text="✔" if dest.enabled else "✘", width=80, anchor="w",
                          text_color="#2ECC71" if dest.enabled else "#E74C3C").pack(side="left")
-
-            row._dest = dest  # type: ignore[attr-defined]
 
         self._selected_dest: Optional[Destination] = None
 
@@ -473,6 +490,7 @@ class DentalRouterApp(ctk.CTk):
     def _refresh_rules_list(self) -> None:
         for widget in self._rules_frame.winfo_children():
             widget.destroy()
+        self._rule_row_map.clear()
 
         dest_map = {d.id: d.name for d in self._settings.destinations}
         sorted_rules = sorted(self._settings.rules, key=lambda r: (r.priority, r.name))
@@ -481,6 +499,7 @@ class DentalRouterApp(ctk.CTk):
             row = ctk.CTkFrame(self._rules_frame, fg_color=("#2B2B3B" if i % 2 else "#222233"))
             row.pack(fill="x", pady=1)
             row.bind("<Button-1>", lambda e, r=rule: self._select_rule(r))
+            self._rule_row_map[id(row)] = rule
 
             ctk.CTkLabel(row, text=str(rule.priority), width=50, anchor="w").pack(side="left", padx=2)
             ctk.CTkLabel(row, text=rule.name, width=160, anchor="w").pack(side="left", padx=2)
@@ -490,8 +509,6 @@ class DentalRouterApp(ctk.CTk):
             ctk.CTkLabel(row, text=dest_map.get(rule.destination_id, "?"), width=150, anchor="w").pack(side="left", padx=2)
             ctk.CTkLabel(row, text="✔" if rule.enabled else "✘", width=40, anchor="w",
                          text_color="#2ECC71" if rule.enabled else "#E74C3C").pack(side="left")
-
-            row._rule = rule  # type: ignore[attr-defined]
 
         self._selected_rule: Optional[Rule] = None
 

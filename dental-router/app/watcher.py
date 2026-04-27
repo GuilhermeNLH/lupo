@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import threading
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from app.logger import logger
-from app.models import DetectedItem
+from app.models import DetectedItem, ItemType
 
 
 class _Handler(FileSystemEventHandler):
@@ -35,7 +35,7 @@ class _Handler(FileSystemEventHandler):
             self._seen.add(path)
 
         p = Path(path)
-        item = DetectedItem.new(p.name, path, item_type)  # type: ignore[arg-type]
+        item = DetectedItem.new(p.name, path, cast("ItemType", item_type))
         try:
             self._callback(item)
         except Exception as exc:
