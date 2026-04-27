@@ -1,0 +1,5 @@
+2026-04-27 16:59:58 [INFO    ] dental_router: Copying file  /tmp/tmp79f45olt/test.txt  →  /tmp/tmp79f45olt/dest/test.txt
+2026-04-27 16:59:59 [INFO    ] dental_router: Copying file  /tmp/tmp79f45olt/test.txt  →  /tmp/tmp79f45olt/dest/test (1).txt
+2026-04-27 16:59:59 [INFO    ] dental_router: Copying folder  /tmp/tmp79f45olt/myfolder  →  /tmp/tmp79f45olt/dest/myfolder
+2026-04-27 17:00:07 [INFO    ] dental_router: Watcher started on: /tmp/tmptvvnsbp_
+2026-04-27 17:00:08 [INFO    ] dental_router: Watcher stopped.

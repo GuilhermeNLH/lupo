@@ -1,0 +1,56 @@
+# Dental Router – default configuration
+# Edit via the GUI or directly here and restart the application.
+
+source_dir: ""
+quarantine_dir: ""
+
+# auto_mode: true  → copy automatically when exactly one rule matches
+# auto_mode: false → only suggest destination, wait for manual confirmation
+auto_mode: false
+
+# What to do when no rule matches a new item
+# Options: manual | quarantine
+on_no_match: manual
+
+# What to do when multiple rules match with the same priority (conflict)
+# Options: manual | quarantine
+on_conflict: manual
+
+# Seconds to wait after the last change event before processing a new item
+scan_debounce_seconds: 2.0
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Example destinations (remove or replace with real paths)
+# ──────────────────────────────────────────────────────────────────────────────
+destinations:
+  - id: dest-example-01
+    name: "E3_01"
+    path: "C:/DentalRouter/E3_01"
+    enabled: true
+
+  - id: dest-example-02
+    name: "E3_02"
+    path: "C:/DentalRouter/E3_02"
+    enabled: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Example rules (remove or replace with real patterns)
+# ──────────────────────────────────────────────────────────────────────────────
+rules:
+  - id: rule-example-01
+    name: "Patient files – E3_01"
+    pattern: "E3_01"
+    match_type: contains    # options: contains | startswith | endswith | regex
+    case_sensitive: false
+    priority: 10            # lower number = higher priority
+    destination_id: dest-example-01
+    enabled: true
+
+  - id: rule-example-02
+    name: "Patient files – E3_02"
+    pattern: "E3_02"
+    match_type: contains
+    case_sensitive: false
+    priority: 10
+    destination_id: dest-example-02
+    enabled: true
