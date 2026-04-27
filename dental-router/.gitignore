@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Logs (keep the directory, ignore runtime log files)
+logs/*.log
+logs/*.log.*
+
+# PyInstaller
+*.spec
+
+# IDE / OS
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
